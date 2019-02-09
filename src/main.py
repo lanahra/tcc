@@ -40,6 +40,8 @@ def job(network_path):
     solution = flow_fill(instance)
     end = default_timer()
 
+    validate(instance, solution)
+
     return solution, end - start
 
 
@@ -63,9 +65,7 @@ def flow_fill(instance: Instance):
                 rest = flow[max_capacity:]
 
                 if len(set(route) - set(covered)) < len(route):
-                    leftover = list(OrderedSet(route) - OrderedSet(covered))
-                    if leftover:
-                        leftovers.append(leftover)
+                    leftovers = leftovers + split_flow(route, covered)
                 else:
                     covered = covered + route
                     routes.append(route)
@@ -73,9 +73,10 @@ def flow_fill(instance: Instance):
                 if len(rest) >= max_capacity:
                     flow = rest
                 else:
-                    if set(rest) - set(covered):
-                        leftover = list(OrderedSet(rest) - OrderedSet(covered))
-                        leftovers.append(leftover)
+                    if len(set(rest) - set(covered)) < len(route):
+                        leftovers = leftovers + split_flow(rest, covered)
+                    else:
+                        leftovers.append(rest)
                     break
 
         flows = sorted(leftovers, key=lambda flow: -len(flow))
@@ -98,6 +99,77 @@ def get_next_edge(edge, instance):
             return flow[next_index]
 
     return None
+
+
+def split_flow(flow, covered):
+    flows = []
+    f = []
+    for edge in flow:
+        if edge not in covered:
+            f.append(edge)
+        else:
+            if len(f) != 0:
+                flows.append(f)
+            f = []
+            continue
+        if len(f) != 0:
+            flows.append(f)
+    return flows
+
+
+def validate(instance, routes):
+    check_edge_coverage(instance, routes)
+    check_flows_boundary(instance, routes)
+
+
+def check_edge_coverage(instance, routes):
+    for edge in instance.edges:
+        count = 0
+        for route in routes:
+            check_route(route, instance.edges)
+            c = route.count(edge['id'])
+            if c > 1:
+                raise ValueError(
+                    'Edge {} appears more than once in route {}'.format(
+                        edge, route))
+            else:
+                count = count + c
+
+        if count == 0:
+            raise ValueError('Edge {} is not covered'.format(edge))
+        elif count > 1:
+            raise ValueError(
+                'Edge {} is covered in more than one route'.format(edge))
+
+
+def check_route(route, edges):
+    r = []
+    for e in route:
+        edge = next(i for i in edges if i['id'] == e)
+        if len(r) == 0:
+            r = r + [edge['source'], edge['target']]
+        elif r[-1] == edge['source']:
+            r = r + [edge['target']]
+        else:
+            raise ValueError('Invalid route {}'.format(route))
+
+
+def check_flows_boundary(instance, routes):
+    for route in routes:
+        in_flow = False
+        for flow in instance.flows:
+            if (issubset(route, flow)):
+                in_flow = True
+                break
+        if not in_flow:
+            raise ValueError('Route {} not in any flow'.format(route))
+
+
+def issubset(route, flow):
+    for i in range(len(flow) - len(route) + 1):
+        if route == flow[i:i + len(route)]:
+            return True
+    return False
 
 
 if __name__ == '__main__':
