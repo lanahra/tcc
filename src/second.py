@@ -37,8 +37,6 @@ def solve(flows):
     s_map = {}
     leftovers = []
 
-    flows = sorted(flows, key=lambda x: -len(x))
-
     for flow in flows:
         h, t = 0, len(flow)
         has_sublists = False
