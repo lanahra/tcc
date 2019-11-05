@@ -34,7 +34,6 @@ def solve(interfaces, flows, k):
     s = 0
 
     for flow in unassigned_flows:
-        obsolete = []
         h = 0
         t = 0
 
@@ -42,22 +41,21 @@ def solve(interfaces, flows, k):
             interface = flow[t]
             sol = covered_by[interface]
 
-            if sol is not None:
-                if is_sublist(solution[sol], flow):
-                    obsolete.append(sol)
-                    t += len(solution[sol])
-                elif len(flow[h:t]) > 0:
-                    subflow = flow[h:t]
-                    solution.append(subflow)
-                    for i in subflow:
-                        covered_by[i] = s
-                    s += 1
-                    h = t
-                else:
-                    h += 1
-                    t = h
-            else:
+            if sol is None:
                 t += 1
+            elif is_sublist(solution[sol], flow):
+                t += len(solution[sol])
+                solution[sol] = None
+            elif len(flow[h:t]) > 0:
+                subflow = flow[h:t]
+                solution.append(subflow)
+                for i in subflow:
+                    covered_by[i] = s
+                s += 1
+                h = t
+            else:
+                h += 1
+                t = h
 
         if len(flow[h:t]) > 0:
             subflow = flow[h:t]
@@ -66,11 +64,6 @@ def solve(interfaces, flows, k):
                 covered_by[i] = s
             s += 1
 
-        for o in obsolete:
-            solution[o] = None
-
     solution = [s for s in solution if s]
     solution = list(split(solution, k))
-    if not all(covered_by[i] is not None for i in interfaces):
-        raise Exception
     return solution
