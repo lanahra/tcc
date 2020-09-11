@@ -9,7 +9,7 @@ root_dir = dirname(dirname(abspath(__file__)))
 network_dir = os.path.join(root_dir, 'networks')
 
 
-def subtrails_of(trail, k=5):
+def subtrails_of(trail, k=10):
     for i in range(1, min(k + 1, len(trail) + 1)):
         for s in map(list, zip(*[trail[j:] for j in range(i)])):
             yield s
@@ -58,10 +58,10 @@ def solve(name, arcs, subtrails):
         model += lpSum(varX[a][s] for a, arc in enumerate(arcs)
                        if arc in subtrail) == len(subtrail) * varY[s]
 
-    start = default_timer()
-    model.solve(CPLEX_CMD(msg=1, timelimit=3600))
-    time = default_timer() - start
-    return value(model.objective), time
+    # start = default_timer()
+    # model.solve(CPLEX_CMD(msg=1, timelimit=3600))
+    # time = default_timer() - start
+    # return value(model.objective), time
 
 
 network_paths = sorted(
@@ -71,8 +71,10 @@ total_networks = len(network_paths)
 for i, network_path in enumerate(network_paths):
     network_name = os.path.splitext(basename(network_path))[0]
     print('{} ({}/{})'.format(network_name, i + 1, total_networks))
+    start = default_timer()
     arcs, subtrails = load_network(network_path)
-    result, time = solve('/networks/zoo_10_12.json', arcs, subtrails)
-    print('{};{};{}\n'.format(network_name, result, time))
-    with open('cplex_results.csv', 'a') as f:
-        f.write('{};{};{}\n'.format(network_name, result, time))
+    solve(network_name, arcs, subtrails)
+    time = default_timer() - start
+    print('{};{}\n'.format(network_name, time))
+    with open('cplex_preprocessing_k10.csv', 'a') as f:
+        f.write('{};{}\n'.format(network_name, time))
